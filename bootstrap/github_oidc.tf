@@ -118,6 +118,14 @@ data "aws_iam_policy_document" "github_actions" {
     resources = ["*"]
   }
 
+  # The KMS ListAliases API does not support resource-level permissions.
+  statement {
+    sid       = "ListKmsAliases"
+    effect    = "Allow"
+    actions   = ["kms:ListAliases"]
+    resources = ["*"]
+  }
+
   statement {
     sid    = "ManageCrmDemoParameters"
     effect = "Allow"
