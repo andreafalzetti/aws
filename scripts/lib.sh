@@ -1,6 +1,10 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -Eeuo pipefail
+
+# Keep macOS system tools available even when a version manager provides a
+# restricted PATH. Preserve the caller PATH for mise and other user tools.
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_CONFIG="${ROOT_DIR}/config/project.env"
