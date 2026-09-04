@@ -42,9 +42,9 @@ github-config: ## Aggiorna le GitHub Actions variables (nessuna AWS key)
 secret-list: ## Elenca i ciphertext registrati, senza valori
 	./scripts/secret.sh list
 
-secret-add: ## Aggiunge un ciphertext: make secret-add KEY=x PATH=/crm-demo/production/x [INPUT=--stdin]
-	@test -n "$(KEY)" -a -n "$(PATH)" || (echo "Servono KEY e PATH" >&2; exit 2)
-	./scripts/secret.sh add "$(KEY)" "$(PATH)" $(INPUT)
+secret-add: ## Aggiunge un ciphertext: make secret-add KEY=x SSM_PATH=/crm-demo/production/x [INPUT=--stdin]
+	@test -n "$(KEY)" -a -n "$(SSM_PATH)" || (echo "Servono KEY e SSM_PATH" >&2; exit 2)
+	./scripts/secret.sh add "$(KEY)" "$(SSM_PATH)" $(INPUT)
 
 secret-rotate: ## Ruota un ciphertext: make secret-rotate KEY=x [INPUT=--stdin]
 	@test -n "$(KEY)" || (echo "Serve KEY" >&2; exit 2)

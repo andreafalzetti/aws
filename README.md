@@ -64,7 +64,7 @@ Per ruotarne uno si incrementa il relativo campo `version` in `environments/prod
 Per Hetzner, Tailscale o altri valori già esistenti, scegliere il namespace del workload che li consumerà:
 
 ```bash
-make secret-add KEY=hetzner_api_token PATH=/platform/production/hetzner/api-token
+make secret-add KEY=hetzner_api_token SSM_PATH=/platform/production/hetzner/api-token
 make plan
 ```
 
@@ -72,7 +72,7 @@ Il prompt è nascosto e il plaintext non compare negli argomenti di processo. Pe
 
 ```bash
 op read -n 'op://Personal/Hetzner/token' | \
-  make secret-add KEY=hetzner_api_token PATH=/platform/production/hetzner/api-token INPUT=--stdin
+  make secret-add KEY=hetzner_api_token SSM_PATH=/platform/production/hetzner/api-token INPUT=--stdin
 ```
 
 Per una rotazione:
