@@ -8,13 +8,17 @@ source "${SCRIPT_DIR}/lib.sh"
 
 MANIFEST="${ROOT_DIR}/environments/production/secrets.auto.tfvars.json"
 KMS_ALIAS="alias/terraform-secrets"
-SSM_PREFIX="/crm-demo/production/"
+ALLOWED_SSM_PREFIXES=(
+  "/crm-demo/production/"
+  "/n8n-demo/production/"
+  "/platform/production/"
+)
 
 usage() {
   cat >&2 <<'EOF'
 Uso:
   scripts/secret.sh list
-  scripts/secret.sh add <chiave-logica> </crm-demo/production/percorso> [--stdin]
+  scripts/secret.sh add <chiave-logica> </workload/production/percorso> [--stdin]
   scripts/secret.sh rotate <chiave-logica> [--stdin]
 
 Senza --stdin il valore viene richiesto due volte con input nascosto.
@@ -62,6 +66,17 @@ list_secrets() {
   ' "${MANIFEST}"
 }
 
+is_allowed_ssm_path() {
+  local parameter_name="$1"
+  local prefix
+
+  for prefix in "${ALLOWED_SSM_PREFIXES[@]}"; do
+    [[ "${parameter_name}" == "${prefix}"* ]] && return 0
+  done
+
+  return 1
+}
+
 write_ciphertext() {
   local operation="$1"
   local logical_key="$2"
@@ -72,11 +87,6 @@ write_ciphertext() {
     echo "Chiave logica non valida: usa minuscole, numeri, _ o -." >&2
     exit 2
   }
-  [[ "${parameter_name}" == "${SSM_PREFIX}"* ]] || {
-    echo "Il path deve iniziare con ${SSM_PREFIX}" >&2
-    exit 2
-  }
-
   local existing
   existing="$(jq -r --arg key "${logical_key}" '.encrypted_parameters[$key] // empty | .name // empty' "${MANIFEST}")"
 
@@ -92,6 +102,11 @@ write_ciphertext() {
     parameter_name="${existing}"
   fi
 
+  is_allowed_ssm_path "${parameter_name}" || {
+    echo "Path SSM non consentito. Prefix ammessi: ${ALLOWED_SSM_PREFIXES[*]}" >&2
+    exit 2
+  }
+
   umask 077
   local secret_file manifest_file
   secret_file="$(mktemp "${TMPDIR:-/tmp}/aws-secret-plaintext.XXXXXX")"
@@ -103,7 +118,7 @@ write_ciphertext() {
 
   read_secret "${input_mode}" >"${secret_file}"
 
-  local ciphertext current_version next_version
+  local ciphertext current_version next_version workload
   ciphertext="$(aws kms encrypt \
     --profile "${AWS_PROFILE}" \
     --region "${AWS_REGION}" \
@@ -117,17 +132,21 @@ write_ciphertext() {
 
   current_version="$(jq -r --arg key "${logical_key}" '.encrypted_parameters[$key].version // 0' "${MANIFEST}")"
   next_version=$((current_version + 1))
+  workload="${parameter_name#/}"
+  workload="${workload%%/*}"
 
   jq \
     --arg key "${logical_key}" \
     --arg name "${parameter_name}" \
     --arg ciphertext "${ciphertext}" \
+    --arg workload "${workload}" \
     --argjson version "${next_version}" \
     '.encrypted_parameters[$key] = {
       name: $name,
       description: ("External secret managed as KMS ciphertext: " + $key),
       ciphertext: $ciphertext,
-      version: $version
+      version: $version,
+      tags: {Workload: $workload}
     }' "${MANIFEST}" >"${manifest_file}"
 
   mv "${manifest_file}" "${MANIFEST}"

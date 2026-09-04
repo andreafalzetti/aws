@@ -5,7 +5,7 @@ provider "aws" {
     tags = {
       Environment = "production"
       ManagedBy   = "terraform"
-      Project     = "crm-demo"
+      Project     = "andreafalzetti-aws"
     }
   }
 }

@@ -8,7 +8,7 @@ Repository Terraform modulare per le risorse dell'account AWS personale di Andre
 - Lock nativo S3 (`use_lockfile = true`): DynamoDB non viene creato perché il locking DynamoDB è deprecato nelle versioni Terraform attuali.
 - GitHub Actions usa OIDC e credenziali AWS temporanee. Non esistono access key AWS nei GitHub Secrets.
 - Il subject OIDC è vincolato agli ID immutabili di owner/repository e al branch `main`.
-- Il workflow può gestire soltanto lo state `production`, la chiave KMS dei segreti e i parametri sotto `/crm-demo/production/*`; non può modificare IAM o il proprio ruolo.
+- Il workflow può gestire soltanto lo state `production`, la chiave KMS dei segreti e i namespace SSM esplicitamente autorizzati (`/crm-demo/production/*`, `/n8n-demo/production/*` e `/platform/production/*`); non può modificare IAM o il proprio ruolo.
 - I valori SSM usano `value_wo`: non vengono salvati nel piano o nello state Terraform.
 - I segreti esterni vengono versionati esclusivamente come ciphertext KMS con encryption context legato al path SSM.
 
@@ -51,18 +51,20 @@ make apply
 
 I primi parametri generati automaticamente sono:
 
-- `/crm-demo/production/n8n/encryption-key`
-- `/crm-demo/production/postgres/password`
+- `/n8n-demo/production/encryption-key`
+- `/n8n-demo/production/postgres/password`
 - `/crm-demo/production/demo/pocketbase/encryption-key`
+
+`n8n-demo` è un workload autonomo: non condivide namespace o tag di progetto con `crm-demo`. Credenziali account-level usate da più workload, come Hetzner o Tailscale, appartengono invece a `/platform/production/*`.
 
 Per ruotarne uno si incrementa il relativo campo `version` in `environments/production/main.tf`; il nuovo valore viene generato in modo effimero durante l'apply.
 
 ## Segreti esterni
 
-Per Hetzner, Tailscale o altri valori già esistenti:
+Per Hetzner, Tailscale o altri valori già esistenti, scegliere il namespace del workload che li consumerà:
 
 ```bash
-make secret-add KEY=hetzner_api_token PATH=/crm-demo/production/hetzner/api-token
+make secret-add KEY=hetzner_api_token PATH=/platform/production/hetzner/api-token
 make plan
 ```
 
@@ -70,7 +72,7 @@ Il prompt è nascosto e il plaintext non compare negli argomenti di processo. Pe
 
 ```bash
 op read -n 'op://Personal/Hetzner/token' | \
-  make secret-add KEY=hetzner_api_token PATH=/crm-demo/production/hetzner/api-token INPUT=--stdin
+  make secret-add KEY=hetzner_api_token PATH=/platform/production/hetzner/api-token INPUT=--stdin
 ```
 
 Per una rotazione:

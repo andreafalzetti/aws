@@ -18,9 +18,10 @@ resource "aws_ssm_parameter" "generated" {
   value_wo         = ephemeral.random_password.generated[each.key].result
   value_wo_version = each.value.version
 
-  tags = {
-    SecretKind = "generated"
-  }
+  tags = merge(
+    { SecretKind = "generated" },
+    each.value.tags,
+  )
 }
 
 ephemeral "aws_kms_secrets" "encrypted" {
@@ -49,7 +50,8 @@ resource "aws_ssm_parameter" "encrypted" {
   value_wo         = ephemeral.aws_kms_secrets.encrypted[each.key].plaintext[each.key]
   value_wo_version = each.value.version
 
-  tags = {
-    SecretKind = "external-ciphertext"
-  }
+  tags = merge(
+    { SecretKind = "external-ciphertext" },
+    each.value.tags,
+  )
 }

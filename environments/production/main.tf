@@ -1,27 +1,8 @@
 locals {
-  generated_parameters = {
-    n8n_encryption_key = {
-      name        = "/crm-demo/production/n8n/encryption-key"
-      description = "Stable n8n credential encryption key"
-      length      = 64
-      special     = false
-      version     = 1
-    }
-    postgres_password = {
-      name        = "/crm-demo/production/postgres/password"
-      description = "PostgreSQL application password for n8n"
-      length      = 48
-      special     = false
-      version     = 1
-    }
-    pocketbase_encryption_key = {
-      name        = "/crm-demo/production/demo/pocketbase/encryption-key"
-      description = "32-character PocketBase settings encryption key"
-      length      = 32
-      special     = false
-      version     = 1
-    }
-  }
+  generated_parameters = merge(
+    local.crm_demo_generated_parameters,
+    local.n8n_demo_generated_parameters,
+  )
 }
 
 module "ssm_parameters" {

@@ -12,6 +12,7 @@ variable "generated_parameters" {
     special          = optional(bool, false)
     override_special = optional(string, "!#$%&*()-_=+[]{}:?")
     version          = number
+    tags             = optional(map(string), {})
   }))
   default = {}
 }
@@ -23,6 +24,7 @@ variable "encrypted_parameters" {
     description = string
     ciphertext  = string
     version     = number
+    tags        = optional(map(string), {})
   }))
   default = {}
 }

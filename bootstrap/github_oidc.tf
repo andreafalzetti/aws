@@ -140,6 +140,8 @@ data "aws_iam_policy_document" "github_actions" {
     ]
     resources = [
       "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/crm-demo/production/*",
+      "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/n8n-demo/production/*",
+      "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/platform/production/*",
     ]
   }
 }
