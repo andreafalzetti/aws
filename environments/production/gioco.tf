@@ -1,6 +1,6 @@
 locals {
   gioco_generated_parameters = {
-    postgres_password = {
+    gioco_postgres_password = {
       name        = "/gioco/production/postgres/password"
       description = "PostgreSQL password for the Frostwood authoritative game server"
       length      = 48
