@@ -8,7 +8,8 @@ Repository Terraform modulare per le risorse dell'account AWS personale di Andre
 - Lock nativo S3 (`use_lockfile = true`): DynamoDB non viene creato perché il locking DynamoDB è deprecato nelle versioni Terraform attuali.
 - GitHub Actions usa OIDC e credenziali AWS temporanee. Non esistono access key AWS nei GitHub Secrets.
 - Il subject OIDC è vincolato agli ID immutabili di owner/repository e al branch `main`.
-- Il workflow può gestire soltanto lo state `production`, la chiave KMS dei segreti e i namespace SSM esplicitamente autorizzati (`/crm-demo/production/*`, `/n8n-demo/production/*` e `/platform/production/*`); non può modificare IAM o il proprio ruolo.
+- Il workflow può gestire soltanto lo state `production`, la chiave KMS dei segreti e i namespace SSM esplicitamente autorizzati (`/crm-demo/production/*`, `/gioco/production/*`, `/n8n-demo/production/*` e `/platform/production/*`); non può modificare IAM o il proprio ruolo.
+- Frostwood usa un ruolo OIDC separato, vincolato al repository `andreafalzetti/gioco`, con accesso al solo state Hetzner del gioco e lettura dei parametri necessari al deploy.
 - I valori SSM usano `value_wo`: non vengono salvati nel piano o nello state Terraform.
 - I segreti esterni vengono versionati esclusivamente come ciphertext KMS con encryption context legato al path SSM.
 
@@ -54,6 +55,7 @@ I primi parametri generati automaticamente sono:
 - `/n8n-demo/production/encryption-key`
 - `/n8n-demo/production/postgres/password`
 - `/crm-demo/production/demo/pocketbase/encryption-key`
+- `/gioco/production/postgres/password`
 
 `n8n-demo` è un workload autonomo: non condivide namespace o tag di progetto con `crm-demo`. Credenziali account-level usate da più workload, come Hetzner o Tailscale, appartengono invece a `/platform/production/*`.
 

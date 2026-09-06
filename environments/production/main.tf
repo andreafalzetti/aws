@@ -1,6 +1,7 @@
 locals {
   generated_parameters = merge(
     local.crm_demo_generated_parameters,
+    local.gioco_generated_parameters,
     local.n8n_demo_generated_parameters,
   )
 }

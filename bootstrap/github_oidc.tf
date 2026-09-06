@@ -1,11 +1,20 @@
 locals {
   production_state_key = "production/terraform.tfstate"
+  gioco_state_key      = "gioco/hetzner/production.tfstate"
   github_oidc_subject = format(
     "repo:%s@%s/%s@%s:ref:refs/heads/%s",
     var.github_owner,
     var.github_owner_id,
     var.github_repository,
     var.github_repository_id,
+    var.github_branch,
+  )
+  gioco_github_oidc_subject = format(
+    "repo:%s@%s/%s@%s:ref:refs/heads/%s",
+    var.github_owner,
+    var.github_owner_id,
+    var.gioco_github_repository,
+    var.gioco_github_repository_id,
     var.github_branch,
   )
 }
@@ -140,6 +149,7 @@ data "aws_iam_policy_document" "github_actions" {
     ]
     resources = [
       "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/crm-demo/production/*",
+      "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/gioco/production/*",
       "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/n8n-demo/production/*",
       "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/platform/production/*",
     ]
@@ -150,4 +160,110 @@ resource "aws_iam_role_policy" "github_actions" {
   name   = "terraform-production-ssm"
   role   = aws_iam_role.github_actions.id
   policy = data.aws_iam_policy_document.github_actions.json
+}
+
+data "aws_iam_policy_document" "github_actions_gioco_trust" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.github.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = [local.gioco_github_oidc_subject]
+    }
+  }
+}
+
+resource "aws_iam_role" "github_actions_gioco" {
+  name               = "github-actions-andreafalzetti-gioco-production"
+  description        = "Least-privilege infrastructure and deploy role for Frostwood"
+  assume_role_policy = data.aws_iam_policy_document.github_actions_gioco_trust.json
+
+  max_session_duration = 3600
+}
+
+data "aws_iam_policy_document" "github_actions_gioco" {
+  statement {
+    sid       = "ListStateBucket"
+    effect    = "Allow"
+    actions   = ["s3:GetBucketLocation", "s3:ListBucket"]
+    resources = [aws_s3_bucket.terraform_state.arn]
+  }
+
+  statement {
+    sid    = "ManageGiocoState"
+    effect = "Allow"
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+    ]
+    resources = [
+      "${aws_s3_bucket.terraform_state.arn}/${local.gioco_state_key}",
+    ]
+  }
+
+  statement {
+    sid    = "ManageGiocoStateLock"
+    effect = "Allow"
+    actions = [
+      "s3:DeleteObject",
+      "s3:GetObject",
+      "s3:PutObject",
+    ]
+    resources = [
+      "${aws_s3_bucket.terraform_state.arn}/${local.gioco_state_key}.tflock",
+    ]
+  }
+
+  statement {
+    sid    = "UseStateKey"
+    effect = "Allow"
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey",
+    ]
+    resources = [aws_kms_key.terraform_state.arn]
+  }
+
+  statement {
+    sid    = "ReadDeploymentSecrets"
+    effect = "Allow"
+    actions = [
+      "ssm:GetParameter",
+      "ssm:GetParameters",
+    ]
+    resources = [
+      "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/gioco/production/*",
+      "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/platform/production/hetzner/api-token",
+    ]
+  }
+
+  statement {
+    sid     = "DecryptDeploymentSecrets"
+    effect  = "Allow"
+    actions = ["kms:Decrypt", "kms:DescribeKey"]
+    resources = [
+      aws_kms_key.terraform_secrets.arn,
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "github_actions_gioco" {
+  name   = "frostwood-production"
+  role   = aws_iam_role.github_actions_gioco.id
+  policy = data.aws_iam_policy_document.github_actions_gioco.json
 }
