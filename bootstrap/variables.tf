@@ -42,3 +42,14 @@ variable "github_branch" {
   type    = string
   default = "main"
 }
+
+variable "gioco_github_repository" {
+  type    = string
+  default = "gioco"
+}
+
+variable "gioco_github_repository_id" {
+  description = "Immutable GitHub database ID for andreafalzetti/gioco."
+  type        = string
+  default     = "1359391446"
+}

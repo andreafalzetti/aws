@@ -12,6 +12,7 @@ MANIFEST="${ROOT_DIR}/environments/production/secrets.auto.tfvars.json"
 KMS_ALIAS="alias/terraform-secrets"
 ALLOWED_SSM_PREFIXES=(
   "/crm-demo/production/"
+  "/gioco/production/"
   "/n8n-demo/production/"
   "/platform/production/"
 )
