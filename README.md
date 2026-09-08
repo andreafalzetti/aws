@@ -8,8 +8,8 @@ Repository Terraform modulare per le risorse dell'account AWS personale di Andre
 - Lock nativo S3 (`use_lockfile = true`): DynamoDB non viene creato perché il locking DynamoDB è deprecato nelle versioni Terraform attuali.
 - GitHub Actions usa OIDC e credenziali AWS temporanee. Non esistono access key AWS nei GitHub Secrets.
 - Il subject OIDC è vincolato agli ID immutabili di owner/repository e al branch `main`.
-- Il workflow può gestire soltanto lo state `production`, la chiave KMS dei segreti e i namespace SSM esplicitamente autorizzati (`/crm-demo/production/*`, `/gioco/production/*`, `/n8n-demo/production/*` e `/platform/production/*`); non può modificare IAM o il proprio ruolo.
-- Frostwood usa un ruolo OIDC separato, vincolato al repository `andreafalzetti/gioco`, con accesso al solo state Hetzner del gioco e lettura dei parametri necessari al deploy.
+- Il workflow può gestire soltanto lo state `production`, la chiave KMS dei segreti e i namespace SSM esplicitamente autorizzati (`/crm-demo/production/*`, `/froststead/production/*`, `/n8n-demo/production/*` e `/platform/production/*`); non può modificare IAM o il proprio ruolo.
+- FROSTSTEAD usa un ruolo OIDC separato, vincolato al repository `andreafalzetti/froststead`, con accesso agli state Hetzner e Cloudflare del gioco e lettura dei parametri necessari al deploy.
 - I valori SSM usano `value_wo`: non vengono salvati nel piano o nello state Terraform.
 - I segreti esterni vengono versionati esclusivamente come ciphertext KMS con encryption context legato al path SSM.
 
@@ -55,7 +55,8 @@ I primi parametri generati automaticamente sono:
 - `/n8n-demo/production/encryption-key`
 - `/n8n-demo/production/postgres/password`
 - `/crm-demo/production/demo/pocketbase/encryption-key`
-- `/gioco/production/postgres/password`
+
+I parametri `/froststead/production/postgres/password` e `/froststead/production/cloudflare/api-token` sono importati come ciphertext KMS, con valori conservati durante la rinomina.
 
 `n8n-demo` è un workload autonomo: non condivide namespace o tag di progetto con `crm-demo`. Credenziali account-level usate da più workload, come Hetzner o Tailscale, appartengono invece a `/platform/production/*`.
 
@@ -95,3 +96,5 @@ make apply
 ```
 
 Sul branch `main`, GitHub Actions esegue nuovamente plan e apply con credenziali temporanee. Le pull request eseguono soltanto controlli offline: non ricevono un token AWS.
+
+La rinomina FROSTSTEAD conserva i valori delle credenziali PostgreSQL e Cloudflare nei parametri cifrati `froststead_postgres_password` e `froststead_cloudflare_api_token`. Non rigenerare la password PostgreSQL durante la rinomina del workload. Gli stati del gioco sono sotto `froststead/`; la trust policy conserva ID del repository e del proprietario e il vincolo a `main`.
